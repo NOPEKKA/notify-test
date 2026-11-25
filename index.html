@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Notify Test</title>
+<meta name="description" content="แอปทดสอบการแจ้งเตือนและตั้งเวลาเตือน">
+<meta name="theme-color" content="#6366f1">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Notify Test">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<style>
+:root{
+  --bg:#f5f5fb; --card:#ffffff; --ink:#1b1b2f; --mute:#6b6b85; --line:#e4e4f0;
+  --accent:#6366f1; --accent-ink:#ffffff; --ok:#15803d; --okbg:#dcfce7; --warn:#a16207; --warnbg:#fef3c7; --bad:#b91c1c; --badbg:#fee2e2;
+  --chip:#eef0ff;
+}
+@media (prefers-color-scheme:dark){
+  :root{ --bg:#0f0f1a; --card:#191927; --ink:#ececf8; --mute:#9a9ab5; --line:#2a2a3d;
+    --accent:#818cf8; --accent-ink:#0f0f1a; --ok:#86efac; --okbg:#14301f; --warn:#fde68a; --warnbg:#35290b; --bad:#fca5a5; --badbg:#3a1414; --chip:#24243a; }
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:16px/1.5 system-ui,-apple-system,"Segoe UI",Sarabun,"Noto Sans Thai",sans-serif;
+  padding:max(16px,env(safe-area-inset-top)) 16px max(24px,env(safe-area-inset-bottom))}
+main{max-width:480px;margin:0 auto;display:grid;gap:14px}
+header{display:flex;align-items:center;gap:12px;padding:6px 2px}
+header img{width:44px;height:44px;border-radius:12px}
+h1{font-size:20px;margin:0;line-height:1.2}
+header p{margin:0;color:var(--mute);font-size:13px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
+.step{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.num{width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--accent-ink);
+  display:grid;place-items:center;font-weight:700;font-size:14px;flex:none}
+h2{font-size:17px;margin:0}
+.status{font-size:13px;padding:8px 12px;border-radius:10px;background:var(--chip);color:var(--ink);margin:0 0 12px}
+.status.ok{background:var(--okbg);color:var(--ok)}
+.status.warn{background:var(--warnbg);color:var(--warn)}
+.status.bad{background:var(--badbg);color:var(--bad)}
+button{font:inherit;font-weight:600;border:0;border-radius:12px;padding:13px 16px;width:100%;cursor:pointer;
+  background:var(--accent);color:var(--accent-ink);min-height:48px}
+button:active{transform:scale(.98)}
+button:disabled{opacity:.45;cursor:not-allowed;transform:none}
+button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.row{display:grid;gap:8px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 12px}
+.chip{width:auto;padding:9px 14px;min-height:40px;font-weight:500;background:var(--chip);color:var(--ink);border:1px solid transparent;border-radius:999px}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+label{display:block;font-size:13px;color:var(--mute);margin:10px 0 4px}
+input[type=text],input[type=number]{font:inherit;width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+.custom{display:flex;gap:8px;align-items:center}
+.custom input{max-width:110px}
+.custom span{color:var(--mute);font-size:14px}
+.count{text-align:center;padding:14px;border-radius:14px;background:var(--chip);margin-bottom:10px}
+.count b{font-size:34px;font-variant-numeric:tabular-nums;display:block;line-height:1.2}
+.count small{color:var(--mute)}
+.hint{font-size:13px;color:var(--mute);margin:10px 0 0}
+ol.how{margin:0 0 12px;padding-left:20px;font-size:14px}
+dl{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:0;font-size:13px}
+dt{color:var(--mute)} dd{margin:0;text-align:right;word-break:break-word}
+#log{font:12px/1.5 ui-monospace,Consolas,monospace;color:var(--mute);max-height:150px;overflow:auto;margin:0;white-space:pre-wrap}
+details summary{cursor:pointer;font-weight:600}
+details[open] summary{margin-bottom:10px}
+footer{text-align:center;color:var(--mute);font-size:12px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <img src="icons/icon-192.png" alt="" width="44" height="44">
+    <div><h1>Notify Test</h1><p>ทดสอบการติดตั้งแอป + การแจ้งเตือน</p></div>
+  </header>
+
+  <!-- ขั้น 1: ติดตั้ง -->
+  <section class="card" aria-labelledby="s1">
+    <div class="step"><span class="num">1</span><h2 id="s1">โหลดแอปลงเครื่อง</h2></div>
+    <p class="status" id="installStatus">กำลังตรวจสอบ…</p>
+    <button id="installBtn" type="button">⬇ ติดตั้งแอป</button>
+    <div id="installHelp" hidden>
+      <p class="hint" id="installHelpTitle"></p>
+      <ol class="how" id="installHelpSteps"></ol>
+    </div>
+  </section>
+
+  <!-- ขั้น 2: แจ้งเตือน -->
+  <section class="card" aria-labelledby="s2">
+    <div class="step"><span class="num">2</span><h2 id="s2">แจ้งเตือน</h2></div>
+    <p class="status" id="permStatus">กำลังตรวจสอบ…</p>
+
+    <div id="scheduleForm">
+      <label for="msg">ข้อความที่จะเตือน</label>
+      <input id="msg" type="text" value="ถึงเวลาแล้ว! 🔔" maxlength="120" autocomplete="off">
+
+      <label>เตือนอีก</label>
+      <div class="chips" id="chips" role="group" aria-label="เลือกเวลา">
+        <button class="chip" type="button" data-s="5" aria-pressed="false">5 วินาที</button>
+        <button class="chip" type="button" data-s="30" aria-pressed="true">30 วินาที</button>
+        <button class="chip" type="button" data-s="60" aria-pressed="false">1 นาที</button>
+        <button class="chip" type="button" data-s="300" aria-pressed="false">5 นาที</button>
+      </div>
+      <div class="custom">
+        <input id="custom" type="number" inputmode="numeric" min="1" max="3600" placeholder="กำหนดเอง">
+        <span>วินาที</span>
+      </div>
+
+      <div class="row" style="margin-top:14px">
+        <button id="notifyBtn" type="button">🔔 แจ้งเตือนฉัน</button>
+        <button id="nowBtn" type="button" class="ghost">แสดงทันที (ทดสอบ)</button>
+      </div>
+    </div>
+
+    <div id="countdown" hidden>
+      <div class="count"><small>จะเตือนในอีก</small><b id="cdNum">0:00</b><small id="cdMsg"></small></div>
+      <button id="cancelBtn" type="button" class="ghost">ยกเลิกการเตือน</button>
+    </div>
+    <p class="hint" id="reliability">เพื่อให้เตือนตรงเวลา ให้เปิดแอปค้างไว้หรือพักหน้าจอไว้ได้ แต่อย่าปิดแอปทิ้ง (เตือนตอนปิดแอปได้ต้องใช้ Push จากเซิร์ฟเวอร์)</p>
+  </section>
+
+  <!-- สถานะระบบ -->
+  <section class="card">
+    <details>
+      <summary>สถานะระบบ / บันทึกเหตุการณ์</summary>
+      <dl id="diag"></dl>
+      <p class="hint">บันทึก</p>
+      <pre id="log" aria-live="polite"></pre>
+    </details>
+  </section>
+
+  <footer>Notify Test v1.0</footer>
+</main>
+
+<script>
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const ua = navigator.userAgent;
+  const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isAndroid = /Android/.test(ua);
+  const isFirefox = /Firefox/.test(ua);
+  const isSafari = /^((?!chrome|android|crios|fxios|edg).)*safari/i.test(ua);
+  const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  const hasNotif = 'Notification' in window;
+  const hasSW = 'serviceWorker' in navigator;
+
+  let deferredPrompt = null;
+  let swReg = null;
+  let sched = null;      // { id, at, title, body }
+  let pageTimer = null, tick = null;
+  const fired = new Set();
+
+  /* ---------- log ---------- */
+  const logEl = $('#log');
+  function log(t) {
+    const d = new Date(), p = (n) => String(n).padStart(2, '0');
+    logEl.textContent += `[${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}] ${t}\n`;
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+  function setStatus(el, text, kind) { el.textContent = text; el.className = 'status' + (kind ? ' ' + kind : ''); }
+
+  /* ---------- service worker ---------- */
+  async function initSW() {
+    if (!hasSW) { log('เบราว์เซอร์ไม่รองรับ Service Worker'); return; }
+    try {
+      await navigator.serviceWorker.register('./sw.js');
+      swReg = await navigator.serviceWorker.ready;
+      log('Service Worker พร้อมใช้งาน');
+    } catch (err) { log('ลงทะเบียน SW ไม่สำเร็จ: ' + err.message); }
+    navigator.serviceWorker.addEventListener('message', (e) => {
+      const d = e.data || {};
+      if (d.type === 'fired') { log('เตือนแล้ว (โดย Service Worker)'); markDone(d.id); }
+      if (d.type === 'clicked') log('ผู้ใช้กดที่การแจ้งเตือน');
+    });
+    renderDiag();
+  }
+
+  /* ---------- ขั้น 1: ติดตั้ง ---------- */
+  function renderInstall() {
+    const st = $('#installStatus'), btn = $('#installBtn');
+    $('#installHelp').hidden = true;
+    if (standalone()) {
+      setStatus(st, '✓ ติดตั้งแล้ว — คุณกำลังเปิดจากแอป', 'ok');
+      btn.hidden = true; return;
+    }
+    btn.hidden = false;
+    if (deferredPrompt) {
+      setStatus(st, 'พร้อมติดตั้ง — กดปุ่มด้านล่างได้เลย');
+    } else if (isIOS) {
+      setStatus(st, 'iPhone/iPad ต้องกด “เพิ่มไปยังหน้าจอโฮม” เอง (ไม่มีปุ่มอัตโนมัติ)', 'warn');
+    } else {
+      setStatus(st, 'กดปุ่มด้านล่างเพื่อดูวิธีติดตั้งบนเบราว์เซอร์นี้');
+    }
+  }
+  function showInstallHelp() {
+    let title, steps;
+    if (isIOS) {
+      title = 'บน iPhone/iPad (ใช้ Safari):';
+      steps = ['แตะปุ่ม แชร์ (สี่เหลี่ยมมีลูกศรขึ้น) ที่แถบด้านล่าง', 'เลื่อนลงแล้วเลือก “เพิ่มไปยังหน้าจอโฮม”', 'แตะ “เพิ่ม” แล้วเปิดแอปจากไอคอนบนหน้าจอ'];
+      if (!isSafari) steps.unshift('เปิดหน้านี้ใน Safari ก่อน (เบราว์เซอร์อื่นบน iOS บางตัวไม่มีเมนูนี้)');
+    } else if (isAndroid) {
+      title = 'บน Android (Chrome):';
+      steps = ['แตะเมนู ⋮ มุมขวาบน', 'เลือก “ติดตั้งแอป” หรือ “เพิ่มไปยังหน้าจอหลัก”', 'ยืนยัน แล้วเปิดแอปจากไอคอน'];
+    } else if (isFirefox) {
+      title = 'Firefox บนคอมพิวเตอร์ยังติดตั้งเว็บเป็นแอปไม่ได้';
+      steps = ['ลองเปิดหน้านี้ด้วย Chrome หรือ Edge แทน'];
+    } else {
+      title = 'บนคอมพิวเตอร์ (Chrome / Edge):';
+      steps = ['มองหาไอคอนติดตั้ง ⊕ ที่ปลายช่องที่อยู่เว็บ', 'หรือเมนู ⋮ → “ติดตั้ง Notify Test” / “แคสต์ บันทึก และแชร์ → ติดตั้งหน้านี้เป็นแอป”'];
+    }
+    $('#installHelpTitle').textContent = title;
+    const ol = $('#installHelpSteps'); ol.innerHTML = '';
+    steps.forEach((s) => { const li = document.createElement('li'); li.textContent = s; ol.appendChild(li); });
+    $('#installHelp').hidden = false;
+  }
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault(); deferredPrompt = e; log('เบราว์เซอร์พร้อมให้ติดตั้ง'); renderInstall(); renderDiag();
+  });
+  window.addEventListener('appinstalled', () => {
+    deferredPrompt = null; log('ติดตั้งแอปสำเร็จ'); renderInstall(); renderNotifyState();
+  });
+  $('#installBtn').addEventListener('click', async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      log('ผลการติดตั้ง: ' + (outcome === 'accepted' ? 'ยอมรับ' : 'ปฏิเสธ'));
+      deferredPrompt = null; renderInstall();
+    } else showInstallHelp();
+  });
+
+  /* ---------- ขั้น 2: แจ้งเตือน ---------- */
+  function iosLocked() { return isIOS && !standalone(); }
+  function renderNotifyState() {
+    const st = $('#permStatus'), notify = $('#notifyBtn'), now = $('#nowBtn');
+    if (!hasNotif || !hasSW) {
+      const why = iosLocked() ? 'iPhone/iPad ต้องติดตั้งแอปลงหน้าจอโฮมก่อน (ขั้น 1) จึงจะแจ้งเตือนได้' : 'เบราว์เซอร์นี้ไม่รองรับการแจ้งเตือน';
+      setStatus(st, why, 'bad'); notify.disabled = now.disabled = true; return;
+    }
+    if (iosLocked()) {
+      setStatus(st, 'iPhone/iPad: ติดตั้งแอปลงหน้าจอโฮมก่อน (ขั้น 1) แล้วเปิดจากไอคอน จึงจะแจ้งเตือนได้', 'warn');
+      notify.disabled = now.disabled = true; return;
+    }
+    notify.disabled = now.disabled = false;
+    const p = Notification.permission;
+    if (p === 'granted') setStatus(st, '✓ อนุญาตการแจ้งเตือนแล้ว', 'ok');
+    else if (p === 'denied') { setStatus(st, '✗ ถูกบล็อกการแจ้งเตือน — เปิดได้ในการตั้งค่าเว็บไซต์/แอปของเบราว์เซอร์', 'bad'); notify.disabled = now.disabled = true; }
+    else setStatus(st, 'ยังไม่ได้อนุญาต — กดปุ่มด้านล่างแล้วเลือก “อนุญาต”', 'warn');
+    renderDiag();
+  }
+  async function ensurePermission() {
+    if (Notification.permission === 'granted') return true;
+    const r = await Notification.requestPermission();
+    log('สิทธิ์แจ้งเตือน: ' + r); renderNotifyState();
+    return r === 'granted';
+  }
+  async function show(title, body, id) {
+    const reg = swReg || await navigator.serviceWorker.ready;
+    await reg.showNotification(title, {
+      body, tag: id, icon: 'icons/icon-192.png', badge: 'icons/badge-96.png',
+      vibrate: [200, 100, 200], data: { id }
+    });
+  }
+
+  $('#nowBtn').addEventListener('click', async () => {
+    if (!(await ensurePermission())) return;
+    try { await show('Notify Test', $('#msg').value.trim() || 'ทดสอบแจ้งเตือน', 'now-' + Date.now()); log('แสดงการแจ้งเตือนทันที'); }
+    catch (err) { log('แสดงไม่สำเร็จ: ' + err.message); }
+  });
+
+  /* เวลา */
+  let seconds = 30;
+  const chips = [...document.querySelectorAll('.chip')];
+  chips.forEach((c) => c.addEventListener('click', () => {
+    seconds = +c.dataset.s; $('#custom').value = '';
+    chips.forEach((x) => x.setAttribute('aria-pressed', String(x === c)));
+  }));
+  $('#custom').addEventListener('input', (e) => {
+    const v = parseInt(e.target.value, 10);
+    if (v > 0) { seconds = Math.min(v, 3600); chips.forEach((x) => x.setAttribute('aria-pressed', 'false')); }
+  });
+
+  $('#notifyBtn').addEventListener('click', async () => {
+    if (!(await ensurePermission())) return;
+    const body = $('#msg').value.trim() || 'ถึงเวลาแล้ว!';
+    startSchedule({ id: 'sched-' + Date.now(), at: Date.now() + seconds * 1000, title: 'Notify Test', body });
+  });
+  $('#cancelBtn').addEventListener('click', () => { log('ยกเลิกการเตือน'); stopSchedule(true); });
+
+  function swPost(msg) {
+    const c = navigator.serviceWorker.controller || (swReg && swReg.active);
+    if (c) c.postMessage(msg);
+  }
+  function startSchedule(s, resumed) {
+    stopSchedule(false);
+    sched = s;
+    try { localStorage.setItem('nt-sched', JSON.stringify(s)); } catch (_) {}
+    const ms = Math.max(0, s.at - Date.now());
+    pageTimer = setTimeout(() => fire(s), ms);
+    swPost({ type: 'schedule', ...s });
+    $('#scheduleForm').hidden = true; $('#countdown').hidden = false;
+    $('#cdMsg').textContent = '“' + s.body + '”';
+    tick = setInterval(renderCount, 250); renderCount();
+    log((resumed ? 'กลับมาจับเวลาต่อ: ' : 'ตั้งเวลาเตือนอีก ') + Math.round(ms / 1000) + ' วินาที');
+  }
+  function renderCount() {
+    if (!sched) return;
+    const left = Math.max(0, Math.ceil((sched.at - Date.now()) / 1000));
+    $('#cdNum').textContent = Math.floor(left / 60) + ':' + String(left % 60).padStart(2, '0');
+  }
+  function stopSchedule(cancelSW) {
+    clearTimeout(pageTimer); clearInterval(tick); pageTimer = tick = null;
+    if (cancelSW && sched) swPost({ type: 'cancel', id: sched.id });
+    sched = null;
+    try { localStorage.removeItem('nt-sched'); } catch (_) {}
+    $('#scheduleForm').hidden = false; $('#countdown').hidden = true;
+  }
+  function markDone(id) {
+    fired.add(id);
+    if (sched && sched.id === id) stopSchedule(false);
+  }
+  async function fire(s) {
+    if (fired.has(s.id)) return;
+    try {
+      const reg = swReg || await navigator.serviceWorker.ready;
+      const existing = await reg.getNotifications({ tag: s.id });
+      if (!existing.length) await show(s.title, s.body, s.id);
+      log('เตือนแล้ว (โดยหน้าเว็บ)');
+    } catch (err) { log('เตือนไม่สำเร็จ: ' + err.message); }
+    swPost({ type: 'cancel', id: s.id });
+    markDone(s.id);
+  }
+
+  // กลับมาที่แอป: ถ้าเลยเวลาแล้วให้ตรวจ/ยิงทันที
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && sched && Date.now() >= sched.at) fire(sched);
+    if (document.visibilityState === 'visible') renderNotifyState();
+  });
+
+  /* ---------- สถานะระบบ ---------- */
+  function renderDiag() {
+    const rows = [
+      ['HTTPS / secure', window.isSecureContext ? 'ใช่' : 'ไม่ (ต้องใช้ HTTPS)'],
+      ['Service Worker', hasSW ? (swReg ? 'ทำงานอยู่' : 'รองรับ') : 'ไม่รองรับ'],
+      ['Notification API', hasNotif ? 'รองรับ' : 'ไม่รองรับ'],
+      ['สิทธิ์แจ้งเตือน', hasNotif ? Notification.permission : '-'],
+      ['เปิดแบบแอป', standalone() ? 'ใช่' : 'ไม่ (เปิดในเบราว์เซอร์)'],
+      ['ติดตั้งอัตโนมัติ', deferredPrompt ? 'พร้อม' : 'ไม่มี'],
+      ['อุปกรณ์', isIOS ? 'iOS' : isAndroid ? 'Android' : 'คอมพิวเตอร์']
+    ];
+    const dl = $('#diag'); dl.innerHTML = '';
+    rows.forEach(([k, v]) => {
+      const dt = document.createElement('dt'), dd = document.createElement('dd');
+      dt.textContent = k; dd.textContent = v; dl.append(dt, dd);
+    });
+  }
+
+  /* ---------- เริ่มต้น ---------- */
+  renderInstall(); renderNotifyState(); renderDiag();
+  matchMedia('(display-mode: standalone)').addEventListener('change', () => { renderInstall(); renderNotifyState(); });
+  initSW().then(() => {
+    try {
+      const s = JSON.parse(localStorage.getItem('nt-sched') || 'null');
+      if (s && s.at > Date.now() - 5000 && !fired.has(s.id)) startSchedule(s, true);
+      else if (s) localStorage.removeItem('nt-sched');
+    } catch (_) {}
+  });
+})();
+</script>
+</body>
+</html>
